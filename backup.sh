@@ -36,9 +36,9 @@ echo "Transmission Completed ."
 
 ## Restore backup file on remote server
 ## If bash run with --remote-restore option
-if [ $1 == "--remote-restore" ]
+if [ "$1" == "--remote-restore" ]
 then
     echo "Restoring database ..."
-    sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; unzip \"$current_time\".zip; mysql --user=\"$REMOTE_DATABASE_USERNAME\" --password=\"$REMOTE_DATABASE_PASSWORD\" --database=\"$REMOTE_DATABASE_NAME\" < \"$current_time\".sql"
+    sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; unzip \"$current_time\".zip; mysql --user=\"$REMOTE_DATABASE_USERNAME\" --password=\"$REMOTE_DATABASE_PASSWORD\" --database=\"$REMOTE_DATABASE_NAME\" < \"$current_time\".sql; rm -rf \"$current_time\".sql"
     echo "Restored ."
 fi
