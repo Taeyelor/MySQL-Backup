@@ -13,6 +13,10 @@ REMOTE_USERNAME=""
 REMOTE_PASSWORD=""
 REMOTE_DIRECTORY=""
 
+REMOTE_DATABASE_NAME=""
+REMOTE_DATABASE_USERNAME=""
+REMOTE_DATABASE_PASSWORD=""
+
 ## Starting backup
 ## Create backup file then zip it and send it to remote server with scp
 echo "Starting Backup ..."
@@ -29,3 +33,12 @@ echo "Connecting To Remote Server ..."
 sshpass -p "$REMOTE_PASSWORD" scp "$current_time".zip "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS":"$REMOTE_DIRECTORY"
 
 echo "Transmission Completed ."
+
+## Restore backup file on remote server
+## If bash run with --remote-restore option
+if [ $1 == "--remote-restore" ]
+then
+    echo "Restoring database ..."
+    sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; unzip \"$current_time\".zip; mysql --user=\"$REMOTE_DATABASE_USERNAME\" --password=\"$REMOTE_DATABASE_PASSWORD\" --database=\"$REMOTE_DATABASE_NAME\" < \"$current_time\".sql"
+    echo "Restored ."
+fi
