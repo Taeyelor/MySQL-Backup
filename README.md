@@ -4,3 +4,6 @@ MySQL backup bash script with scp to remote server
 # Requirement
 - sshpass
 - mysqldump
+
+# Options
+- --remote-restore `Restore backup database on remote server`
