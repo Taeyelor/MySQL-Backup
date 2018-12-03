@@ -42,3 +42,33 @@ then
     sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; unzip \"$current_time\".zip; mysql --user=\"$REMOTE_DATABASE_USERNAME\" --password=\"$REMOTE_DATABASE_PASSWORD\" --database=\"$REMOTE_DATABASE_NAME\" < \"$current_time\".sql; rm -rf \"$current_time\".sql"
     echo "Restored ."
 fi
+
+## Remove old backups from local
+## From 7 days ago
+echo "Removing old backups from local ..."
+
+DAY=$(date --date="7 days ago" +%Y_%m_%d)
+COUNTER=7
+while [ -n "$(ls "$DAY"_*)" ]; do
+    echo "$COUNTER day(s) ago : $DAY"
+    rm -rf "$DAY"_*.zip
+    COUNTER=$((COUNTER+1))
+    DAY=$(date --date="$COUNTER days ago" +%Y_%m_%d)
+done
+
+echo "Old backups removed from local ."
+
+## Remove old backups from remote
+## From 7 days ago
+echo "Removing old backups from remote ..."
+
+DAY=$(date --date="7 days ago" +%Y_%m_%d)
+COUNTER=7
+while [ -n "$(sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; ls \"$DAY\"_*")" ]; do
+    echo "$COUNTER day(s) ago : $DAY"
+    sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; rm -rf "$DAY"_*.zip"
+    COUNTER=$((COUNTER+1))
+    DAY=$(date --date="$COUNTER days ago" +%Y_%m_%d)
+done
+
+echo "Old backups removed from remote ."
