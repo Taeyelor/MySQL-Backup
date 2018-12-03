@@ -1,5 +1,5 @@
 # MySQL-Backup
-MySQL backup bash script with scp to remote server
+MySQL backup bash script with scp to remote server and remove old backup files from local and remote server
 
 # Requirement
 - sshpass
