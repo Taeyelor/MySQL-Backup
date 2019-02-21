@@ -3,19 +3,7 @@
 ## Define your config 
 ## For example username, password, ip address for remote connection and database name, username, password for connect to your database
 
-DATABASE_NAME=""
-DATABASE_USERNAME=""
-DATABASE_PASSWORD=""
-DATABASE_SERVER=""
-
-REMOTE_IP_ADDRESS=""
-REMOTE_USERNAME=""
-REMOTE_PASSWORD=""
-REMOTE_DIRECTORY=""
-
-REMOTE_DATABASE_NAME=""
-REMOTE_DATABASE_USERNAME=""
-REMOTE_DATABASE_PASSWORD=""
+source ./config.cfg
 
 ## Starting backup
 ## Create backup file then zip it and send it to remote server with scp
@@ -28,15 +16,16 @@ zip "$current_time".zip "$current_time".sql
 rm -rf "$current_time".sql
 
 echo "Backup Completed ."
-echo "Connecting To Remote Server ..."
+if [ "$REMOTE_ACTIVE" == "yes" ]
+then
+    echo "Connecting To Remote Server ..."
+    sshpass -p "$REMOTE_PASSWORD" scp "$current_time".zip "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS":"$REMOTE_DIRECTORY"
+    echo "Transmission Completed ."
+fi
 
-sshpass -p "$REMOTE_PASSWORD" scp "$current_time".zip "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS":"$REMOTE_DIRECTORY"
-
-echo "Transmission Completed ."
 
 ## Restore backup file on remote server
-## If bash run with --remote-restore option
-if [ "$1" == "--remote-restore" ]
+if [ "$REMOTE_RESTORE" == "yes" ]
 then
     echo "Restoring database ..."
     sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; unzip \"$current_time\".zip; mysql --user=\"$REMOTE_DATABASE_USERNAME\" --password=\"$REMOTE_DATABASE_PASSWORD\" --database=\"$REMOTE_DATABASE_NAME\" < \"$current_time\".sql; rm -rf \"$current_time\".sql"
@@ -44,31 +33,31 @@ then
 fi
 
 ## Remove old backups from local
-## From 7 days ago
-echo "Removing old backups from local ..."
+if [ "$AUTO_OLD_BACKUP_LOCAL_REMOVE" == "yes" ]
+then
+    echo "Removing old backups from local ..."
+    DAY=$(date --date="7 days ago" +%Y_%m_%d)
+    while [ -n "$(ls "$DAY"_*)" ]; do
+        echo "$LOCAL_DAYS_AGO day(s) ago : $DAY"
+        rm -rf "$DAY"_*.zip
+        LOCAL_DAYS_AGO=$((LOCAL_DAYS_AGO+1))
+        DAY=$(date --date="$LOCAL_DAYS_AGO days ago" +%Y_%m_%d)
+    done
+    echo "Old backups removed from local ."
+fi
 
-DAY=$(date --date="7 days ago" +%Y_%m_%d)
-COUNTER=7
-while [ -n "$(ls "$DAY"_*)" ]; do
-    echo "$COUNTER day(s) ago : $DAY"
-    rm -rf "$DAY"_*.zip
-    COUNTER=$((COUNTER+1))
-    DAY=$(date --date="$COUNTER days ago" +%Y_%m_%d)
-done
-
-echo "Old backups removed from local ."
 
 ## Remove old backups from remote
-## From 7 days ago
-echo "Removing old backups from remote ..."
+if [ "$AUTO_OLD_BACKUP_REMOTE_REMOVE" == "yes" ]
+then
+    echo "Removing old backups from remote ..."
+    DAY=$(date --date="7 days ago" +%Y_%m_%d)
+    while [ -n "$(sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; ls \"$DAY\"_*")" ]; do
+        echo "$REMOTE_DAYS_AGO day(s) ago : $DAY"
+        sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; rm -rf "$DAY"_*.zip"
+        REMOTE_DAYS_AGO=$((REMOTE_DAYS_AGO+1))
+        DAY=$(date --date="$REMOTE_DAYS_AGO days ago" +%Y_%m_%d)
+    done
+    echo "Old backups removed from remote ."
+fi
 
-DAY=$(date --date="7 days ago" +%Y_%m_%d)
-COUNTER=7
-while [ -n "$(sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; ls \"$DAY\"_*")" ]; do
-    echo "$COUNTER day(s) ago : $DAY"
-    sshpass -p "$REMOTE_PASSWORD" ssh "$REMOTE_USERNAME"@"$REMOTE_IP_ADDRESS" "cd \"$REMOTE_DIRECTORY\"; rm -rf "$DAY"_*.zip"
-    COUNTER=$((COUNTER+1))
-    DAY=$(date --date="$COUNTER days ago" +%Y_%m_%d)
-done
-
-echo "Old backups removed from remote ."
